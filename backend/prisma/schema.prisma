@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Concentration {
+  EAU_DE_COLOGNE
+  EAU_DE_TOILETTE
+  EAU_DE_PARFUM
+  PARFUM
+  EXTRAIT_DE_PARFUM
+  OTHER
+}
+
+enum FragranceFamily {
+  CITRUS
+  FLORAL
+  WOODY
+  AMBER
+  FRESH
+  GOURMAND
+  AROMATIC
+  LEATHER
+  CHYPRE
+  FOUGERE
+  OTHER
+}
+
+enum NoteCategory {
+  CITRUS
+  FLORAL
+  WOODY
+  SPICY
+  FRUITY
+  SWEET
+  GREEN
+  MUSKY
+  RESINOUS
+  OTHER
+}
+
+enum NoteLayer {
+  TOP
+  MIDDLE
+  BASE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Perfume {
+  id              String              @id @default(uuid()) @db.Uuid
+  name            String              @db.VarChar(120)
+  brand           String              @db.VarChar(100)
+  concentration   Concentration
+  fragranceFamily FragranceFamily     @map("fragrance_family")
+  volumeMl        Int?                @map("volume_ml")
+  description     String?
+  imageUrl        String?             @map("image_url")
+  purchasePrice   Decimal?            @map("purchase_price") @db.Decimal(14, 2)
+  purchaseDate    DateTime?           @map("purchase_date") @db.Date
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  notes           PerfumeNote[]
+  collections     CollectionPerfume[]
+  review          Review?
+  @@map("perfumes")
+}
+
+model FragranceNote {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String        @db.VarChar(80)
+  nameKey     String        @unique @map("name_key") @db.VarChar(80)
+  category    NoteCategory
+  description String?
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  perfumes    PerfumeNote[]
+  @@map("fragrance_notes")
+}
+
+model PerfumeNote {
+  perfumeId String        @map("perfume_id") @db.Uuid
+  noteId    String        @map("note_id") @db.Uuid
+  layer     NoteLayer
+  perfume   Perfume       @relation(fields: [perfumeId], references: [id], onDelete: Cascade)
+  note      FragranceNote @relation(fields: [noteId], references: [id], onDelete: Restrict)
+  @@id([perfumeId, noteId, layer])
+  @@map("perfume_notes")
+}
+
+model Collection {
+  id            String              @id @default(uuid()) @db.Uuid
+  name          String              @db.VarChar(80)
+  nameKey       String              @unique @map("name_key") @db.VarChar(80)
+  description   String?
+  coverImageUrl String?             @map("cover_image_url")
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  perfumes      CollectionPerfume[]
+  @@map("collections")
+}
+
+model CollectionPerfume {
+  collectionId String     @map("collection_id") @db.Uuid
+  perfumeId    String     @map("perfume_id") @db.Uuid
+  addedAt      DateTime   @default(now()) @map("added_at") @db.Timestamptz(6)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  perfume      Perfume    @relation(fields: [perfumeId], references: [id], onDelete: Cascade)
+  @@id([collectionId, perfumeId])
+  @@map("collection_perfumes")
+}
+
+model Review {
+  id               String   @id @default(uuid()) @db.Uuid
+  perfumeId        String   @unique @map("perfume_id") @db.Uuid
+  overallRating    Int      @map("overall_rating") @db.SmallInt
+  longevityRating  Int?     @map("longevity_rating") @db.SmallInt
+  projectionRating Int?     @map("projection_rating") @db.SmallInt
+  reviewText       String?  @map("review_text")
+  testedDate       DateTime? @map("tested_date") @db.Date
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  perfume          Perfume  @relation(fields: [perfumeId], references: [id], onDelete: Cascade)
+  @@map("reviews")
+}
+
+model WishlistItem {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String           @db.VarChar(120)
+  brand           String           @db.VarChar(100)
+  concentration   Concentration
+  fragranceFamily FragranceFamily? @map("fragrance_family")
+  imageUrl        String?          @map("image_url")
+  estimatedPrice  Decimal?         @map("estimated_price") @db.Decimal(14, 2)
+  priority        Priority         @default(MEDIUM)
+  notes           String?
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  @@map("wishlist_items")
+}

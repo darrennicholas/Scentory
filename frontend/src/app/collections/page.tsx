@@ -1,0 +1,10 @@
+'use client';
+import Link from 'next/link';
+import {useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import {apiRequest} from '@/lib/api';
+import {Page} from '@/lib/models';
+import {ImageFallback} from '@/components/image-fallback';
+import {LoadingSkeleton} from '@/components/loading-skeleton';
+type Collection={id:string;name:string;description:string|null;coverImageUrl:string|null;_count:{perfumes:number}};
+export default function Collections(){const [page,setPage]=useState(1);const q=useQuery({queryKey:['collections',page],queryFn:()=>apiRequest<Page<Collection>>(`/collections?page=${page}`)});return <main className="page"><p className="eyebrow">Your personal archive</p><div className="page-heading"><div><h1>Curated Collections</h1><p className="muted">Fragrances assembled by season, memory, and personal meaning.</p></div><Link className="btn" href="/collections/new">+ Create collection</Link></div>{q.isLoading?<LoadingSkeleton label="Loading collections"/>:q.isError?<p className="error">Could not load collections. <button onClick={()=>q.refetch()}>Try again</button></p>:q.data?.data.length?<div className="grid note-grid">{q.data.data.map(c=><Link className="card" key={c.id} href={`/collections/${c.id}`}><ImageFallback src={c.coverImageUrl} alt={c.name} style={{aspectRatio:'16/10'}}/><p className="eyebrow" style={{marginTop:20}}>{c._count.perfumes} fragrances</p><h3>{c.name}</h3><p className="muted">{c.description}</p><span>Explore →</span></Link>)}</div>:<div className="empty"><h2>No collections yet</h2><p className="muted">Create a home for fragrances that belong together.</p><Link className="btn" href="/collections/new">Create collection</Link></div>}<div className="pagination"><span>{q.data?.meta.total??0} collections</span><button className="btn secondary" disabled={page<=1} onClick={()=>setPage(page-1)}>Previous</button><span>{page} / {Math.max(1,q.data?.meta.totalPages??1)}</span><button className="btn secondary" disabled={page >= (q.data?.meta.totalPages??1)} onClick={()=>setPage(page+1)}>Next</button></div></main>}
