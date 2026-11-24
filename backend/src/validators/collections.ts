@@ -11,4 +11,10 @@ export const collectionCreateSchema = z.object({
 export const collectionPatchSchema = collectionCreateSchema.omit({ perfumeIds: true }).partial();
 export const collectionListQuerySchema = pageSchema;
 export const membershipParamsSchema = z.object({ id: uuidSchema, perfumeId: uuidSchema });
-export const membershipBodySchema = z.object({ perfumeId: uuidSchema });
+export const membershipBodySchema = z.object({
+  perfumeId: uuidSchema.optional(),
+  perfumeIds: z.array(uuidSchema).min(1).max(100).optional(),
+}).refine(value => Boolean(value.perfumeIds || value.perfumeId)
+  && !(value.perfumeIds && value.perfumeId)
+  && (!value.perfumeIds || new Set(value.perfumeIds).size === value.perfumeIds.length), 'Choose one or more unique perfumes')
+  .transform(value => ({ perfumeIds: value.perfumeIds ?? [value.perfumeId!] }));

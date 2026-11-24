@@ -6,7 +6,7 @@ async function req(path,method='GET',data){const r=await fetch(base+path,{method
 (async()=>{try{
  let r=await req('/wishlist','POST',{name:`Test ${suffix}`,brand:'Test Brand',concentration:'EAU_DE_PARFUM',priority:'HIGH'});assert.equal(r.status,201);wish=r.body.data.id;
  const payload={name:`Test ${suffix}`,brand:'Test Brand',concentration:'EAU_DE_PARFUM',fragranceFamily:'WOODY',notes:[{noteId:'00000000-0000-4000-8000-000000000000',layer:'TOP'}]};
- r=await req(`/wishlist/${wish}/convert`,'POST',payload);assert.notEqual(r.status,201);r=await req(`/wishlist/${wish}`);assert.equal(r.status,200);
+ r=await req(`/wishlist/${wish}/convert`,'POST',payload);assert.equal(r.status,409);r=await req(`/wishlist/${wish}`);assert.equal(r.status,200);
  r=await req(`/wishlist/${wish}/convert`,'POST',{...payload,notes:[]});assert.equal(r.status,201);perfume=r.body.data.id;wish=undefined;
  r=await req('/reviews','POST',{perfumeId:perfume,overallRating:4,reviewText:'Test'});assert.equal(r.status,201);review=r.body.data.id;
  r=await req('/reviews','POST',{perfumeId:perfume,overallRating:5});assert.equal(r.status,409);

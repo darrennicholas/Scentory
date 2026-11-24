@@ -46,8 +46,8 @@ export function deleteCollection(id: string) {
   return prisma.collection.delete({ where: { id } });
 }
 
-export function addPerfume(collectionId: string, perfumeId: string) {
-  return prisma.collectionPerfume.create({ data: { collectionId, perfumeId } });
+export function addPerfumes(collectionId: string, perfumeIds: string[]) {
+  return prisma.collectionPerfume.createMany({ data: perfumeIds.map(perfumeId => ({ collectionId, perfumeId })) });
 }
 
 export function removePerfume(collectionId: string, perfumeId: string) {

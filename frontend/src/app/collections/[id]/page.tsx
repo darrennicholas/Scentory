@@ -1,14 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FieldError } from '@/components/field-error';
 import { PerfumeCard } from '@/components/perfume-card';
+import { LoadingSkeleton } from '@/components/loading-skeleton';
 import { useSaveFeedback } from '@/components/providers';
 import { apiRequest } from '@/lib/api';
 import { Perfume } from '@/lib/models';
+import { clientFieldErrors, collectionFormSchema } from '@/lib/form-validation';
 
 type Collection = { id: string; name: string; description: string | null; coverImageUrl: string | null; perfumes: { perfume: Perfume }[] };
 
@@ -21,6 +23,7 @@ export default function CollectionDetail() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [cover, setCover] = useState('');
+  const [clientErrors, setClientErrors] = useState<Record<string, string[]>>({});
   const query = useQuery({ queryKey: ['collections', id], queryFn: () => apiRequest<{ data: Collection }>(`/collections/${id}`) });
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['collections'] });
@@ -33,7 +36,7 @@ export default function CollectionDetail() {
   });
   const edit = useMutation({
     meta: { feedbackHandled: true },
-    mutationFn: () => runSave(() => apiRequest(`/collections/${id}`, { method: 'PATCH', body: JSON.stringify({ name, description, coverImageUrl: cover || null }) }), 'Collection details updated.'),
+    mutationFn: (payload: { name: string; description: string | null; coverImageUrl: string | null }) => runSave(() => apiRequest(`/collections/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }), 'Collection details updated.'),
     onSuccess: () => { refresh(); setEditing(false); },
   });
   const del = useMutation({
@@ -41,18 +44,25 @@ export default function CollectionDetail() {
     onSuccess: () => { refresh(); router.push('/collections'); },
   });
 
-  if (query.isLoading) return <main className="page">Loading collection…</main>;
+  if (query.isLoading) return <main className="page"><LoadingSkeleton variant="detail" label="Loading collection" /></main>;
   if (query.isError || !query.data) return <main className="page"><p className="error">Could not load collection.</p><button onClick={() => query.refetch()}>Try again</button></main>;
 
   const collection = query.data.data;
+  const submitEdit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const result = collectionFormSchema.pick({ name: true, description: true, coverImageUrl: true }).safeParse({ name, description, coverImageUrl: cover });
+    if (!result.success) { setClientErrors(clientFieldErrors(result.error)); return; }
+    setClientErrors({});
+    edit.mutate(result.data);
+  };
   return <main className="page">
     <p className="eyebrow">Curated collection · {collection.perfumes.length} fragrances</p>
     <div className="page-heading"><div><h1>{collection.name}</h1><p className="muted">{collection.description}</p></div><div className="actions"><button className="btn" onClick={() => { setName(collection.name); setDescription(collection.description ?? ''); setCover(collection.coverImageUrl ?? ''); setEditing(true); }}>Edit collection</button><button className="btn secondary" disabled={del.isPending} onClick={() => { if (confirm('Delete this collection? Your perfumes will remain.')) del.mutate(); }}>Delete collection</button></div></div>
-    {editing && <form className="panel" onSubmit={event => { event.preventDefault(); edit.mutate(); }}>
+    {editing && <form className="panel" onSubmit={submitEdit}>
       <h2>Edit collection</h2><div className="form-grid">
-        <label>Name *<input required minLength={2} maxLength={80} value={name} onChange={event => setName(event.target.value)} /><FieldError error={edit.error} field="name" /></label>
-        <label>Cover image URL or local image path<input type="text" inputMode="url" placeholder="https://… or /storage/images/…" value={cover} onChange={event => setCover(event.target.value)} /><FieldError error={edit.error} field="coverImageUrl" /></label>
-        <label className="wide">Description<textarea maxLength={500} value={description} onChange={event => setDescription(event.target.value)} /><FieldError error={edit.error} field="description" /></label>
+        <label>Name *<input required minLength={2} maxLength={80} value={name} onChange={event => setName(event.target.value)} /><FieldError error={edit.error} field="name" clientErrors={clientErrors} /></label>
+        <label>Cover image URL or local image path<input type="text" inputMode="url" placeholder="https://… or /storage/images/…" value={cover} onChange={event => setCover(event.target.value)} /><FieldError error={edit.error} field="coverImageUrl" clientErrors={clientErrors} /></label>
+        <label className="wide">Description<textarea maxLength={500} value={description} onChange={event => setDescription(event.target.value)} /><FieldError error={edit.error} field="description" clientErrors={clientErrors} /></label>
       </div>
       {edit.isError && <p className="error" role="alert">{edit.error.message}</p>}
       <div className="form-actions"><button type="button" className="btn secondary" onClick={() => setEditing(false)}>Cancel</button><button className="btn" disabled={edit.isPending}>Save changes</button></div>

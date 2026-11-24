@@ -94,7 +94,7 @@ async function main() {
       await tx.perfume.upsert({
         where: { id: perfume.id },
         create: { ...data, notes: { create: links } },
-        update: { ...data, notes: { deleteMany: {}, create: links } },
+        update: {},
       });
     }
 
@@ -103,7 +103,7 @@ async function main() {
       await tx.collection.upsert({
         where: { id: collection.id },
         create: { ...data, nameKey: key(data.name), perfumes: { create: perfumeIds.map(perfumeId => ({ perfumeId })) } },
-        update: { ...data, nameKey: key(data.name), perfumes: { deleteMany: {}, create: perfumeIds.map(perfumeId => ({ perfumeId })) } },
+        update: {},
       });
     }
 
@@ -111,12 +111,12 @@ async function main() {
       await tx.review.upsert({
         where: { perfumeId: review.perfumeId },
         create: { id: `e4000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`, ...review },
-        update: review,
+        update: {},
       });
     }
 
     for (const item of wishlistSeeds) {
-      await tx.wishlistItem.upsert({ where: { id: item.id }, create: item, update: item });
+      await tx.wishlistItem.upsert({ where: { id: item.id }, create: item, update: {} });
     }
   });
 

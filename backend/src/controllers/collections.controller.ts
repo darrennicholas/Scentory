@@ -31,7 +31,7 @@ export const deleteCollection: RequestHandler = asyncHandler(async (_req, res) =
 });
 export const addPerfume: RequestHandler = asyncHandler(async (req, res) => {
   const body = req.body as ReturnType<typeof membershipBodySchema.parse>;
-  res.status(201).json({ data: await service.addPerfume(id(res), body.perfumeId) });
+  res.status(201).json({ data: await service.addPerfumes(id(res), body.perfumeIds) });
 });
 export const removePerfume: RequestHandler = asyncHandler(async (_req, res) => {
   const values = membership(res);
